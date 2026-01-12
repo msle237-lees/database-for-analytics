@@ -1,0 +1,3 @@
+[submodule "energy-data"]
+	path = energy-data
+	url = https://github.com/owid/energy-data.git

@@ -1,0 +1,16 @@
+[project]
+name = "generic_fastapi_sqlserver"
+version = "0.1.0"
+description = "Generic FastAPI + SQL Server (pyodbc) API that can create arbitrary tables and perform CRUD."
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn>=0.24",
+  "pyodbc>=5.0",
+  "python-dotenv>=1.0",
+  "pydantic>=2.0"
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
