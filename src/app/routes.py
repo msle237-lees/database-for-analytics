@@ -22,9 +22,11 @@ from app.schemas import (
     InsertRowRequest,
     InsertRowsRequest,
     SelectRequest,
+    SelectAllRequest,
     TableInfo,
     UpdateRequest,
 )
+
 from app import queries
 
 
@@ -239,3 +241,28 @@ def delete_rows(req: DeleteRequest, conn: pyodbc.Connection = Depends(get_db)) -
         raise _http_500(f"SQL error deleting rows: {e}")
     except Exception as e:
         raise _http_500(f"Failed to delete rows: {e}")
+
+@router.post("/rows/select-all", response_model=GenericResult)
+def select_all_rows(req: SelectAllRequest, conn: pyodbc.Connection = Depends(get_db)) -> GenericResult:
+    """
+    @brief Select *all* rows from any table (internally batched).
+
+    Uses a safety cap (max_rows) so you can't accidentally return millions of rows.
+    """
+    try:
+        data = queries.select_all_rows(
+            conn=conn,
+            schema=req.schema,
+            table=req.table,
+            columns=req.columns,
+            where=req.where,
+            batch_size=req.batch_size,
+            max_rows=req.max_rows,
+        )
+        return GenericResult(ok=True, message="ok", data=data, rows_affected=len(data))
+    except ValueError as e:
+        raise _http_400(str(e))
+    except pyodbc.Error as e:
+        raise _http_500(f"SQL error selecting rows: {e}")
+    except Exception as e:
+        raise _http_500(f"Failed to select rows: {e}")

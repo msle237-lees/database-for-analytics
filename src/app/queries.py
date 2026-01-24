@@ -489,3 +489,68 @@ def delete_rows(conn: pyodbc.Connection, schema: str, table: str, where: Dict[st
     cur = conn.cursor()
     cur.execute(sql, params)
     return cur.rowcount
+
+def select_all_rows(
+    conn: pyodbc.Connection,
+    schema: str,
+    table: str,
+    columns: Optional[List[str]] = None,
+    where: Optional[Dict[str, Any]] = None,
+    batch_size: int = 5000,
+    max_rows: int = 100_000,
+) -> List[Dict[str, Any]]:
+    """
+    @brief Select *all* rows from a table with optional equality filters.
+
+    This function pages internally (OFFSET/FETCH) until:
+      - no more rows are returned, or
+      - max_rows is reached (safety cap).
+
+    @param conn DB connection.
+    @param schema Schema name.
+    @param table Table name.
+    @param columns Optional list of columns to return (default: all).
+    @param where Optional equality filters: {col: value}.
+    @param batch_size Number of rows to fetch per batch.
+    @param max_rows Safety cap to prevent accidental huge responses.
+    @return List of rows as dicts.
+    """
+    validate_identifier(schema, "schema")
+    validate_identifier(table, "table")
+
+    if batch_size < 1 or batch_size > 5000:
+        raise ValueError("batch_size must be between 1 and 5000.")
+    if max_rows < 1:
+        raise ValueError("max_rows must be >= 1.")
+
+    out: List[Dict[str, Any]] = []
+    offset = 0
+
+    while True:
+        remaining = max_rows - len(out)
+        if remaining <= 0:
+            break
+
+        limit = batch_size if remaining > batch_size else remaining
+
+        chunk = select_rows(
+            conn=conn,
+            schema=schema,
+            table=table,
+            columns=columns,
+            where=where,
+            limit=limit,
+            offset=offset,
+        )
+
+        if not chunk:
+            break
+
+        out.extend(chunk)
+        offset += len(chunk)
+
+        # If we got fewer than requested, we reached the end.
+        if len(chunk) < limit:
+            break
+
+    return out

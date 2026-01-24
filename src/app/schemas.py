@@ -100,3 +100,11 @@ class ColumnInfo(BaseModel):
     is_identity: bool
     is_primary_key: bool
     default: Optional[str] = None
+
+class SelectAllRequest(BaseModel):
+    schema: str = Field("dbo", description="Schema name.")
+    table: str = Field(..., description="Table name.")
+    columns: Optional[List[str]] = Field(None, description="Columns to return (default: all).")
+    where: Optional[Dict[str, Any]] = Field(None, description="Equality filters: {col: value}.")
+    batch_size: int = Field(5000, ge=1, le=5000, description="Rows fetched per batch.")
+    max_rows: int = Field(100000, ge=1, le=500000, description="Safety cap for total rows returned.")
